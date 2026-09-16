@@ -1,0 +1,215 @@
+USE mccs_db;
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- Users table
+DROP TABLE IF EXISTS users;
+CREATE TABLE users (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  full_name VARCHAR(150) NOT NULL,
+  email VARCHAR(150) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  role ENUM('SUPER_ADMIN','SYSTEM_ADMIN','STORE_OFFICER','DEPARTMENT_HEAD','STAFF','AUDITOR') NOT NULL DEFAULT 'STORE_OFFICER',
+  phone VARCHAR(30) DEFAULT NULL,
+  status ENUM('ACTIVE','INACTIVE') NOT NULL DEFAULT 'ACTIVE',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- Departments table
+DROP TABLE IF EXISTS departments;
+CREATE TABLE departments (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  department_name VARCHAR(150) NOT NULL UNIQUE,
+  department_code VARCHAR(30) NOT NULL UNIQUE,
+  budget DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  description TEXT DEFAULT NULL,
+  status ENUM('ACTIVE','INACTIVE') NOT NULL DEFAULT 'ACTIVE',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- Staff table
+DROP TABLE IF EXISTS staff;
+CREATE TABLE staff (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  employee_id VARCHAR(50) NOT NULL UNIQUE,
+  full_name VARCHAR(150) NOT NULL,
+  department_id INT UNSIGNED NOT NULL,
+  designation VARCHAR(100) NOT NULL,
+  email VARCHAR(150) NOT NULL UNIQUE,
+  phone VARCHAR(30) DEFAULT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_staff_department FOREIGN KEY (department_id) REFERENCES departments(id)
+) ENGINE=InnoDB;
+
+-- Cards table
+DROP TABLE IF EXISTS cards;
+CREATE TABLE cards (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  card_uuid VARCHAR(36) NOT NULL UNIQUE,
+  provider VARCHAR(50) NOT NULL,
+  type ENUM('AIRTIME','DATA','SMS') NOT NULL,
+  value DECIMAL(10,2) NOT NULL,
+  pin_encrypted TEXT NOT NULL,
+  pin_iv VARCHAR(64) NOT NULL,
+  pin_auth_tag VARCHAR(64) NOT NULL,
+  pin_hash VARCHAR(64) NOT NULL UNIQUE,
+  expiry_date DATE DEFAULT NULL,
+  batch_number VARCHAR(100) DEFAULT NULL,
+  status ENUM('AVAILABLE','ALLOCATED','DELIVERED','CONFIRMED','USED','EXPIRED') NOT NULL DEFAULT 'AVAILABLE',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- Distributions table
+DROP TABLE IF EXISTS distributions;
+CREATE TABLE distributions (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  distribution_uuid VARCHAR(36) NOT NULL UNIQUE,
+  month DATE NOT NULL,
+  department_id INT UNSIGNED NOT NULL,
+  initiated_by INT UNSIGNED NOT NULL,
+  total_cards INT UNSIGNED NOT NULL DEFAULT 0,
+  total_value DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  status ENUM('DRAFT','CONFIRMED','SENT','COMPLETED') NOT NULL DEFAULT 'CONFIRMED',
+  requires_approval TINYINT(1) NOT NULL DEFAULT 0,
+  approval_status ENUM('PENDING','APPROVED','REJECTED') DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_distribution_dept FOREIGN KEY (department_id) REFERENCES departments(id),
+  CONSTRAINT fk_distribution_user FOREIGN KEY (initiated_by) REFERENCES users(id)
+) ENGINE=InnoDB;
+
+-- Distribution items table
+DROP TABLE IF EXISTS distribution_items;
+CREATE TABLE distribution_items (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  distribution_id INT UNSIGNED NOT NULL,
+  card_id INT UNSIGNED NOT NULL,
+  staff_id INT UNSIGNED NOT NULL,
+  allocated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_di_distribution FOREIGN KEY (distribution_id) REFERENCES distributions(id),
+  CONSTRAINT fk_di_card FOREIGN KEY (card_id) REFERENCES cards(id),
+  CONSTRAINT fk_di_staff FOREIGN KEY (staff_id) REFERENCES staff(id)
+) ENGINE=InnoDB;
+
+-- Deliveries table
+DROP TABLE IF EXISTS deliveries;
+CREATE TABLE deliveries (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  distribution_item_id INT UNSIGNED NOT NULL,
+  delivery_method ENUM('EMAIL','SMS') NOT NULL DEFAULT 'EMAIL',
+  sent_at DATETIME DEFAULT NULL,
+  confirmation_token VARCHAR(128) NOT NULL UNIQUE,
+  token_expiry DATETIME NOT NULL,
+  status ENUM('PENDING','SENT','DELIVERED','CONFIRMED','EXPIRED') NOT NULL DEFAULT 'PENDING',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_delivery_item FOREIGN KEY (distribution_item_id) REFERENCES distribution_items(id)
+) ENGINE=InnoDB;
+
+-- Confirmations table
+DROP TABLE IF EXISTS confirmations;
+CREATE TABLE confirmations (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  delivery_id INT UNSIGNED NOT NULL,
+  confirmed_by INT UNSIGNED NOT NULL,
+  confirmed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ip_address VARCHAR(60) DEFAULT NULL,
+  user_agent TEXT DEFAULT NULL,
+  CONSTRAINT fk_confirmation_delivery FOREIGN KEY (delivery_id) REFERENCES deliveries(id),
+  CONSTRAINT fk_confirmation_user FOREIGN KEY (confirmed_by) REFERENCES users(id)
+) ENGINE=InnoDB;
+
+-- Notifications table
+DROP TABLE IF EXISTS notifications;
+CREATE TABLE notifications (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  type ENUM('REMINDER','LOW_INVENTORY','DISTRIBUTION','SYSTEM') NOT NULL DEFAULT 'SYSTEM',
+  title VARCHAR(200) NOT NULL,
+  message TEXT NOT NULL,
+  link VARCHAR(255) DEFAULT NULL,
+  is_read TINYINT(1) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_notification_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Audit logs table
+DROP TABLE IF EXISTS audit_logs;
+CREATE TABLE audit_logs (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED DEFAULT NULL,
+  action ENUM('UPLOAD','ALLOCATE','SEND','CONFIRM','USE','EXPIRE','LOGIN','LOGOUT','DELETE','UPDATE') NOT NULL,
+  card_id INT UNSIGNED DEFAULT NULL,
+  details JSON DEFAULT NULL,
+  ip VARCHAR(60) DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- Login attempts table
+DROP TABLE IF EXISTS login_attempts;
+CREATE TABLE login_attempts (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(150) NOT NULL,
+  ip_address VARCHAR(45) DEFAULT NULL,
+  user_agent VARCHAR(500) DEFAULT NULL,
+  success TINYINT(1) NOT NULL DEFAULT 0,
+  failure_reason VARCHAR(255) DEFAULT NULL,
+  attempted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- System settings table
+DROP TABLE IF EXISTS system_settings;
+CREATE TABLE system_settings (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  setting_key VARCHAR(100) NOT NULL UNIQUE,
+  setting_value TEXT,
+  description VARCHAR(255),
+  updated_by INT UNSIGNED,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- Usage logs table
+DROP TABLE IF EXISTS usage_logs;
+CREATE TABLE usage_logs (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  card_id INT UNSIGNED NOT NULL,
+  staff_id INT UNSIGNED NOT NULL,
+  marked_used_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  remarks VARCHAR(255) DEFAULT NULL,
+  CONSTRAINT fk_usage_card FOREIGN KEY (card_id) REFERENCES cards(id),
+  CONSTRAINT fk_usage_staff FOREIGN KEY (staff_id) REFERENCES staff(id)
+) ENGINE=InnoDB;
+
+-- Eligibility rules table
+DROP TABLE IF EXISTS eligibility_rules;
+CREATE TABLE eligibility_rules (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  staff_id INT UNSIGNED NOT NULL,
+  card_type ENUM('AIRTIME','DATA','SMS') NOT NULL,
+  monthly_quota INT UNSIGNED NOT NULL DEFAULT 1,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_staff_card_type (staff_id, card_type),
+  CONSTRAINT fk_eligibility_staff FOREIGN KEY (staff_id) REFERENCES staff(id)
+) ENGINE=InnoDB;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- Insert admin user with password Admin@1234
+INSERT INTO users (full_name, email, password, role, phone, status) VALUES 
+('System Administrator', 'admin@mccs.com', '$2b$10$/dhKfEFMzLFPZca1ZWtU8Ox9gBviCVIeXOOuZv8ymcY3C8myrCRzG', 'SYSTEM_ADMIN', '+251911234567', 'ACTIVE');
+
+-- Insert sample departments
+INSERT INTO departments (department_name, department_code, budget) VALUES 
+('IT Department', 'IT', 50000.00),
+('HR Department', 'HR', 30000.00),
+('Finance Department', 'FIN', 40000.00);
+
+SELECT 'Database setup complete!' as status;
+SELECT COUNT(*) as total_tables FROM information_schema.tables WHERE table_schema = 'mccs_db';

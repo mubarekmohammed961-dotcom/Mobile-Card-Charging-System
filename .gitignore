@@ -1,0 +1,64 @@
+# Node modules
+**/node_modules/
+**/package-lock.json
+
+# Environment variables
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Build outputs
+**/dist/
+**/build/
+
+# Logs
+**/*.log
+**/logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+**/.vscode/
+**/.idea/
+**/*.swp
+**/*.swo
+**/.DS_Store
+
+# Temporary files
+**/tmp/
+**/temp/
+**/*.tmp
+
+# Uploads (sensitive data)
+**/src/uploads/*
+!**/src/uploads/.gitkeep
+
+# Test files
+**/test_*.js
+**/test_*.sql
+
+# SQL dumps and backups
+**/*.sql.backup
+**/database_backup/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Database credentials (keep schema, exclude data dumps)
+**/database/backup/
+**/FAST_FIX.sql
+**/FIX_*.sql
+**/RESET_*.sql
+**/INSERT_SYSTEM_SETTINGS.sql
+**/test_approval_api.js
+
+# Documentation (keep for reference, but large files can be excluded)
+# Uncomment if you want to exclude docs
+# **/*.pdf
+# **/docs/
+
+# Coverage reports
+**/coverage/
+**/.nyc_output/
