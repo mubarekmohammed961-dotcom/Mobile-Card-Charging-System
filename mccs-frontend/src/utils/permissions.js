@@ -13,7 +13,7 @@ export const ROLES = {
 };
 
 export const ROUTE_PERMISSIONS = {
-  "/dashboard":       ["SUPER_ADMIN","SYSTEM_ADMIN","STORE_OFFICER","DEPARTMENT_HEAD","STAFF","AUDITOR"],
+  "/dashboard":       ["SUPER_ADMIN","SYSTEM_ADMIN","STORE_OFFICER","DEPARTMENT_HEAD","AUDITOR"],
   "/inventory":       ["SUPER_ADMIN","SYSTEM_ADMIN","STORE_OFFICER","AUDITOR"],
   "/departments":     ["SUPER_ADMIN","SYSTEM_ADMIN","DEPARTMENT_HEAD","AUDITOR"],
   "/staff":           ["SUPER_ADMIN","SYSTEM_ADMIN","DEPARTMENT_HEAD"],
@@ -37,7 +37,7 @@ export const ROUTE_PERMISSIONS = {
 // Clean, organised navigation — grouped by function
 export const NAV_ITEMS = [
   // ── Overview ──────────────────────────────────────────────
-  { label: "Dashboard",        path: "/dashboard",       section: "Overview",        roles: ["SUPER_ADMIN","SYSTEM_ADMIN","STORE_OFFICER","DEPARTMENT_HEAD","STAFF","AUDITOR"] },
+  { label: "Dashboard",        path: "/dashboard",       section: "Overview",        roles: ["SUPER_ADMIN","SYSTEM_ADMIN","STORE_OFFICER","DEPARTMENT_HEAD","AUDITOR"] },
   { label: "My Cards",         path: "/staff-dashboard", section: "Overview",        roles: ["STAFF","DEPARTMENT_HEAD"] },
   { label: "Notifications",    path: "/notifications",   section: "Overview",        roles: ["SUPER_ADMIN","SYSTEM_ADMIN","STORE_OFFICER","DEPARTMENT_HEAD","STAFF","AUDITOR"] },
   // ── Card Management ───────────────────────────────────────
@@ -80,6 +80,11 @@ export function getNavForRole(role) {
   return NAV_ITEMS.filter(item => item.roles.includes(role));
 }
 
-export function getDefaultRoute() {
+export function getDefaultRoute(role) {
+  // STAFF goes directly to their personal "My Cards" dashboard
+  if (role === "STAFF") {
+    return "/staff-dashboard";
+  }
+  // All other roles go to admin Dashboard
   return "/dashboard";
 }
