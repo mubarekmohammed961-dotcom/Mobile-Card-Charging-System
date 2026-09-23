@@ -380,8 +380,8 @@ This project is proprietary software developed for the Ethiopian Government.
 ## 📞 Support
 
 For technical support or questions:
-- Email: support@mccs.gov.et
-- Phone: +251911234567
+- Email: mubarekmohammed961@gmail.com
+- Phone: 0954757566
 
 ---
 
