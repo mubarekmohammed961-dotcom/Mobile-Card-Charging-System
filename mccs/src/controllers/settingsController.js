@@ -8,20 +8,23 @@ const getSettings = async (req, res) => {
   try {
     const [rows] = await db.query(`
       SELECT
-        id, setting_key, setting_value, description, updated_at
+        id, setting_key, setting_value, setting_group, description, 
+        is_sensitive, data_type, updated_at
       FROM system_settings
-      ORDER BY setting_key ASC
+      ORDER BY setting_group, setting_key ASC
     `);
 
     const settings = rows.map(r => ({
       ...r,
-      setting_group: 'general',
       label: r.setting_key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      is_sensitive: false
     }));
 
-    // Group them
-    const grouped = { general: settings };
+    // Group settings by setting_group
+    const grouped = {};
+    settings.forEach(s => {
+      if (!grouped[s.setting_group]) grouped[s.setting_group] = [];
+      grouped[s.setting_group].push(s);
+    });
 
     return res.json({ success: true, count: rows.length, settings, grouped });
   } catch (error) {
