@@ -15,6 +15,7 @@ router.get(
     "SYSTEM_ADMIN",
     "STORE_OFFICER",
     "DEPARTMENT_HEAD",
+    "STAFF",
     "AUDITOR",
   ),
   getDashboardSummary,
