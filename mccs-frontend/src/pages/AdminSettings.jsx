@@ -72,6 +72,9 @@ export default function AdminSettings() {
   };
   const roleStyle = roleColors[profile?.role] || { bg: "#f1f5f9", color: "#475569" };
 
+  // RBAC: Only SUPER_ADMIN and SYSTEM_ADMIN can edit profile/password/settings (SRS Section 5)
+  const canEditProfile = currentUser.role === "SUPER_ADMIN" || currentUser.role === "SYSTEM_ADMIN";
+
   return (
     <div className="app-layout">
       <Sidebar />
@@ -80,8 +83,12 @@ export default function AdminSettings() {
         <div className="page-content">
           <div className="page-header">
             <div>
-              <div className="page-title">Admin Settings</div>
-              <div className="page-subtitle">Manage your profile, password, and system configuration</div>
+              <div className="page-title">{canEditProfile ? "Admin Settings" : "My Profile"}</div>
+              <div className="page-subtitle">
+                {canEditProfile 
+                  ? "Manage your profile, password, and system configuration"
+                  : "View your profile information"}
+              </div>
             </div>
           </div>
 
@@ -157,8 +164,51 @@ export default function AdminSettings() {
               </div>
             </div>
 
-            {/* RIGHT: Forms */}
+            {/* RIGHT: Forms or Read-Only View */}
             <div>
+              {!canEditProfile && (
+                /* Read-Only Profile View for Non-Admin Users */
+                <div className="panel" style={{ marginTop: 0 }}>
+                  <div className="panel-header">
+                    <div>
+                      <div className="panel-title">Profile Information</div>
+                      <div className="panel-subtitle">Your profile details are managed by administrators</div>
+                    </div>
+                  </div>
+                  <div className="panel-body">
+                    <div className="alert alert-info" style={{ marginBottom: "20px" }}>
+                      <span>ℹ️</span>
+                      <span>
+                        <strong>Profile Editing Restricted:</strong> Only Super Admin and System Admin can edit profile information.
+                        Contact your administrator if you need to update your name, email, or phone number.
+                      </span>
+                    </div>
+                    <div style={{ display: "grid", gap: "16px" }}>
+                      {[
+                        { label: "Full Name", value: profile?.full_name || "—" },
+                        { label: "Email Address", value: profile?.email || "—" },
+                        { label: "Phone Number", value: profile?.phone || "Not set" },
+                        { label: "Role", value: profile?.role?.replace(/_/g, " ") || "—" },
+                        { label: "Status", value: profile?.status || "—" },
+                        { label: "User ID", value: `#${profile?.id || "—"}` },
+                        { label: "Member Since", value: profile?.created_at ? new Date(profile.created_at).toLocaleDateString("en-US", { year:"numeric", month:"long", day:"numeric" }) : "—" },
+                      ].map(item => (
+                        <div key={item.label} style={{ padding: "14px", background: "#f8fafc", borderRadius: "8px", border: "1px solid var(--border)" }}>
+                          <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                            {item.label}
+                          </div>
+                          <div style={{ fontSize: "15px", fontWeight: 600, color: "var(--text-primary)" }}>
+                            {item.value}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {canEditProfile && (
+                <>
               {/* Profile Form */}
               <div className="panel" style={{ marginTop: 0 }}>
                 <div className="panel-header">
@@ -202,8 +252,10 @@ export default function AdminSettings() {
                   </form>
                 </div>
               </div>
+              </>
+              )}
 
-              {/*Change Password */}
+              {/* Change Password - Available to ALL users */}
               <div className="panel">
                 <div className="panel-header">
                   <div>
@@ -212,7 +264,7 @@ export default function AdminSettings() {
                   </div>
                 </div>
                 <div className="panel-body">
-                  {pwdMsg && <div className="alert alert-success" style={{ marginBottom: "16px" }}><span></span><span>{pwdMsg}</span></div>}
+                  {pwdMsg && <div className="alert alert-success" style={{ marginBottom: "16px" }}><span>✓</span><span>{pwdMsg}</span></div>}
                   {pwdErr && <div className="alert alert-error" style={{ marginBottom: "16px" }}><span>!</span><span>{pwdErr}</span></div>}
                   <form onSubmit={changePassword}>
                     <div className="form-grid">
@@ -259,7 +311,8 @@ export default function AdminSettings() {
                 </div>
               </div>
 
-              {/* Redirect to System Settings */}
+              {/* System Configuration - Only for Admins */}
+              {canEditProfile && (
               <div className="panel">
                 <div className="panel-header">
                   <div>
@@ -274,6 +327,7 @@ export default function AdminSettings() {
                   </a>
                 </div>
               </div>
+              )}
             </div>
           </div>
         </div>
