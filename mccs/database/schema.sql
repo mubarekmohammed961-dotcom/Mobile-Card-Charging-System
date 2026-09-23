@@ -280,3 +280,25 @@ VALUES (
   'SUPER_ADMIN',
   'ACTIVE'
 );
+
+-- ============================================================
+-- SYSTEM SETTINGS (Configurable Parameters)
+-- Required for: System Settings page, FR-006, FR-028, NFR-002
+-- ============================================================
+CREATE TABLE IF NOT EXISTS system_settings (
+  id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  setting_key     VARCHAR(100) NOT NULL UNIQUE COMMENT 'Unique identifier (e.g., smtp_host)',
+  setting_value   TEXT DEFAULT NULL COMMENT 'Current value',
+  setting_group   ENUM('general','email','sms','inventory','delivery','distribution','cron','security') 
+                  NOT NULL DEFAULT 'general' COMMENT 'UI grouping',
+  description     VARCHAR(500) DEFAULT NULL COMMENT 'Human-readable description',
+  is_sensitive    TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1=Hidden (password), 0=Visible',
+  data_type       ENUM('string','number','boolean','email','url','cron') 
+                  NOT NULL DEFAULT 'string' COMMENT 'Validation type',
+  updated_by      INT UNSIGNED DEFAULT NULL COMMENT 'Last admin who updated',
+  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_system_settings_group (setting_group),
+  INDEX idx_system_settings_key (setting_key),
+  CONSTRAINT fk_system_settings_user FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB COMMENT='System configuration (SMTP, inventory alerts, cron schedules, security)';
