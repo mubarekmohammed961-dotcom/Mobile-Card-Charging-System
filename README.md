@@ -136,17 +136,7 @@ npm run dev
 
 **Access:** http://localhost:5173
 
----
-
-## 👤 Default Credentials
-
-### Super Admin
-- **Email:** admin@mccs.com
-- **Password:** Admin@1234
-
-### Department Head
-- **Email:** head2@mccs.com
-- **Password:** Head@1234
+> **Note:** Default credentials are provided separately for security reasons. Contact the system administrator for access.
 
 ---
 
